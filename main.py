@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import argparse
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
@@ -82,7 +83,10 @@ def is_valid_url(url):
     except ValueError:
         return False
 
-def trigger_webhook(new_episodes):
+def trigger_webhook(new_episodes, test_limit=None):
+    if test_limit:
+        new_episodes = new_episodes[:test_limit]
+    
     logging.debug(f"Triggering webhook for {len(new_episodes)} new episodes")
     payload = {
         'text': f"New episodes of DeClue Equine: {len(new_episodes)} found",
@@ -127,8 +131,14 @@ def rotate_log_file():
         
         logging.debug(f"Removed {len(lines) - len(new_lines)} old log entries")
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Check for new DeClue Equine podcast episodes and send notifications.')
+    parser.add_argument('--test', type=int, help='Number of episodes to send for testing purposes')
+    return parser.parse_args()
+
 def main():
-    rotate_log_file()  # Add this line at the beginning of the main function
+    args = parse_arguments()
+    rotate_log_file()
     logging.info("Script started")
     try:
         token = get_spotify_token()
@@ -145,8 +155,9 @@ def main():
 
         if new_episodes:
             logging.info(f"Found {len(new_episodes)} new episodes")
-            if trigger_webhook(new_episodes):
-                save_episodes(current_episodes)
+            if trigger_webhook(new_episodes, args.test):
+                if not args.test:  # Only save episodes if not in test mode
+                    save_episodes(current_episodes)
             else:
                 logging.warning("Failed to trigger webhook, not saving current episodes")
         else:

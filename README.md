@@ -43,6 +43,22 @@ To use this script:
 
 The script can be scheduled to run periodically (e.g., using cron jobs) to regularly check for new episodes.
 
+### Testing
+
+For testing purposes, you can limit the number of episodes sent to the webhook:
+
+```
+python main.py --test <number_of_episodes>
+```
+
+For example, to send only the first two new episodes to the webhook:
+
+```
+python main.py --test 2
+```
+
+This will not update the `last_episodes.json` file, allowing for repeated testing.
+
 ## Files
 
 - `main.py`: The main Python script that performs the Spotify checking and webhook notification.
