@@ -22,6 +22,7 @@ This automation allows for easy monitoring of new podcast episodes without manua
 - Local State Management: Maintains a local JSON file to keep track of previously checked episodes.
 - Pagination Handling: Capable of retrieving all episodes, even if they span multiple pages in the Spotify API response.
 - Error Handling and Logging: Implements comprehensive error handling and logging for easy debugging and monitoring.
+- Log Rotation: Automatically manages the debug log file, keeping only the last week of logs to prevent excessive file growth.
 
 ## Configuration
 

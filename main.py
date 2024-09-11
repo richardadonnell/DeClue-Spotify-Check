@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import requests
@@ -105,7 +105,30 @@ def trigger_webhook(new_episodes):
             logging.error(f"Response content: {e.response.text}")
         return False
 
+def rotate_log_file():
+    logging.debug("Rotating log file")
+    if os.path.exists('debug.log'):
+        with open('debug.log', 'r') as f:
+            lines = f.readlines()
+        
+        one_week_ago = datetime.now() - timedelta(days=7)
+        new_lines = []
+        for line in lines:
+            try:
+                log_date = datetime.strptime(line.split(' - ')[0], '%Y-%m-%d %H:%M:%S,%f')
+                if log_date >= one_week_ago:
+                    new_lines.append(line)
+            except ValueError:
+                # If we can't parse the date, keep the line
+                new_lines.append(line)
+        
+        with open('debug.log', 'w') as f:
+            f.writelines(new_lines)
+        
+        logging.debug(f"Removed {len(lines) - len(new_lines)} old log entries")
+
 def main():
+    rotate_log_file()  # Add this line at the beginning of the main function
     logging.info("Script started")
     try:
         token = get_spotify_token()
