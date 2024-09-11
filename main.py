@@ -24,8 +24,8 @@ WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 # Show ID for DeClue Equine
 SHOW_ID = os.getenv('SHOW_ID')
 
-# File to store the last checked episode
-LAST_EPISODE_FILE = os.getenv('LAST_EPISODE_FILE')
+# File to store the last checked episodes
+LAST_EPISODES_FILE = 'last_episodes.json'
 
 def get_spotify_token():
     logging.debug("Attempting to get Spotify token")
@@ -39,39 +39,41 @@ def get_spotify_token():
     logging.debug("Spotify token obtained successfully")
     return auth_response_data['access_token']
 
-def get_latest_episode(token):
-    logging.debug(f"Fetching latest episode for show ID: {SHOW_ID}")
+def get_all_episodes(token):
+    logging.debug(f"Fetching all episodes for show ID: {SHOW_ID}")
     headers = {
         'Authorization': f'Bearer {token}'
     }
-    response = requests.get(f'https://api.spotify.com/v1/shows/{SHOW_ID}/episodes', headers=headers)
-    episodes = response.json()['items']
-    if episodes:
-        latest_episode = episodes[0]
-        logging.debug(f"Latest episode found: {latest_episode['name']}")
-        return latest_episode
-    else:
-        logging.warning("No episodes found")
-        return None
+    episodes = []
+    url = f'https://api.spotify.com/v1/shows/{SHOW_ID}/episodes?limit=50'
+    
+    while url:
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        episodes.extend(data['items'])
+        url = data['next']
+    
+    logging.debug(f"Fetched {len(episodes)} episodes")
+    return episodes
 
-def save_last_episode(episode):
-    logging.debug(f"Saving last episode: {episode['name']}")
-    with open(LAST_EPISODE_FILE, 'w') as f:
-        json.dump({
+def save_episodes(episodes):
+    logging.debug(f"Saving {len(episodes)} episodes")
+    with open(LAST_EPISODES_FILE, 'w') as f:
+        json.dump([{
             'id': episode['id'],
             'name': episode['name'],
             'release_date': episode['release_date']
-        }, f)
+        } for episode in episodes], f)
 
-def load_last_episode():
-    logging.debug("Loading last checked episode")
-    if os.path.exists(LAST_EPISODE_FILE):
-        with open(LAST_EPISODE_FILE, 'r') as f:
-            episode = json.load(f)
-            logging.debug(f"Last checked episode: {episode['name']}")
-            return episode
-    logging.debug("No last checked episode found")
-    return None
+def load_last_episodes():
+    logging.debug("Loading last checked episodes")
+    if os.path.exists(LAST_EPISODES_FILE):
+        with open(LAST_EPISODES_FILE, 'r') as f:
+            episodes = json.load(f)
+            logging.debug(f"Loaded {len(episodes)} last checked episodes")
+            return episodes
+    logging.debug("No last checked episodes found")
+    return []
 
 def is_valid_url(url):
     try:
@@ -80,44 +82,52 @@ def is_valid_url(url):
     except ValueError:
         return False
 
-def trigger_webhook(episode):
-    logging.debug(f"Triggering webhook for episode: {episode['name']}")
+def trigger_webhook(new_episodes):
+    logging.debug(f"Triggering webhook for {len(new_episodes)} new episodes")
     payload = {
-        'text': f"New episode of DeClue Equine: {episode['name']}",
-        'episode_data': episode  # Pass the entire episode data
+        'text': f"New episodes of DeClue Equine: {len(new_episodes)} found",
+        'episodes': new_episodes
     }
     if not is_valid_url(WEBHOOK_URL):
         logging.error(f"Invalid webhook URL: {WEBHOOK_URL}")
         return False
     try:
-        response = requests.post(WEBHOOK_URL, json=payload)
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(WEBHOOK_URL, json=payload, headers=headers)
         response.raise_for_status()
-        logging.debug("Webhook triggered successfully")
+        logging.debug(f"Webhook triggered successfully. Response: {response.text}")
         return True
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to trigger webhook: {str(e)}")
+        if hasattr(e.response, 'text'):
+            logging.error(f"Response content: {e.response.text}")
         return False
 
 def main():
     logging.info("Script started")
     try:
         token = get_spotify_token()
-        latest_episode = get_latest_episode(token)
+        current_episodes = get_all_episodes(token)
         
-        if not latest_episode:
+        if not current_episodes:
             logging.info("No episodes found.")
             return
 
-        last_checked_episode = load_last_episode()
+        last_episodes = load_last_episodes()
+        last_episode_ids = set(episode['id'] for episode in last_episodes)
 
-        if not last_checked_episode or latest_episode['id'] != last_checked_episode['id']:
-            logging.info(f"New episode found: {latest_episode['name']}")
-            if trigger_webhook(latest_episode):
-                save_last_episode(latest_episode)
+        new_episodes = [episode for episode in current_episodes if episode['id'] not in last_episode_ids]
+
+        if new_episodes:
+            logging.info(f"Found {len(new_episodes)} new episodes")
+            if trigger_webhook(new_episodes):
+                save_episodes(current_episodes)
             else:
-                logging.warning("Failed to trigger webhook, not saving last episode")
+                logging.warning("Failed to trigger webhook, not saving current episodes")
         else:
-            logging.info("No new episodes.")
+            logging.info("No new episodes. Webhook not triggered.")
     except Exception as e:
         logging.exception(f"An error occurred: {str(e)}")
     finally:
