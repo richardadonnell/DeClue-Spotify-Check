@@ -4,6 +4,9 @@ import os
 import argparse
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 import requests
 from dotenv import load_dotenv
@@ -27,6 +30,13 @@ SHOW_ID = os.getenv('SHOW_ID')
 
 # File to store the last checked episodes
 LAST_EPISODES_FILE = 'last_episodes.json'
+
+# SMTP settings
+SMTP_SERVER = os.getenv('SMTP_SERVER')
+SMTP_PORT = int(os.getenv('SMTP_PORT'))
+SMTP_USERNAME = os.getenv('SMTP_USERNAME')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+EMAIL_RECIPIENT = os.getenv('EMAIL_RECIPIENT')
 
 def get_spotify_token():
     logging.debug("Attempting to get Spotify token")
@@ -134,12 +144,52 @@ def rotate_log_file():
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Check for new DeClue Equine podcast episodes and send notifications.')
     parser.add_argument('--test', type=int, help='Number of episodes to send for testing purposes')
+    parser.add_argument('--test-email', action='store_true', help='Send a test email to verify SMTP settings')
     return parser.parse_args()
+
+def send_test_email():
+    try:
+        message = MIMEMultipart()
+        message['From'] = SMTP_USERNAME
+        message['To'] = EMAIL_RECIPIENT
+        message['Subject'] = 'DeClue Equine Script Test Email'
+
+        body = "This is a test email to verify the SMTP settings for the DeClue Equine script."
+        message.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(message)
+            logging.info("Test email sent successfully")
+    except Exception as e:
+        logging.error(f"Failed to send test email: {str(e)}")
+
+def send_error_email(error_message):
+    try:
+        message = MIMEMultipart()
+        message['From'] = SMTP_USERNAME
+        message['To'] = EMAIL_RECIPIENT
+        message['Subject'] = 'DeClue Equine Script Error'
+
+        body = f"An error occurred while running the DeClue Equine script:\n\n{error_message}"
+        message.attach(MIMEText(body, 'plain'))
+
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(message)
+            logging.debug("Error email sent successfully")
+    except Exception as e:
+        logging.error(f"Failed to send error email: {str(e)}")
 
 def main():
     args = parse_arguments()
     rotate_log_file()
     logging.info("Script started")
+
+    if args.test_email:
+        send_test_email()
+        return
+
     try:
         token = get_spotify_token()
         current_episodes = get_all_episodes(token)
@@ -164,6 +214,7 @@ def main():
             logging.info("No new episodes. Webhook not triggered.")
     except Exception as e:
         logging.exception(f"An error occurred: {str(e)}")
+        send_error_email(str(e))
     finally:
         logging.info("Script completed")
 
