@@ -18,10 +18,10 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Copy Python packages from builder stage
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /usr/local
 
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+# Make sure scripts are usable
+ENV PATH=/usr/local/bin:$PATH
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app
