@@ -1,5 +1,5 @@
 # Multi-stage Python Dockerfile for Coolify deployment
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Set working directory for build stage
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Runtime stage
-FROM python:3.11-slim as runtime
+FROM python:3.11-slim AS runtime
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
