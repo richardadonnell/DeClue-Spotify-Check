@@ -101,7 +101,7 @@ docker volume inspect declue-spotify-check_app_data
 
 For production deployment, consider:
 
-1. **Resource Limits**: Add memory and CPU limits to docker-compose.yml
+1. **Resource Limits**: Add memory and CPU limits to docker-compose.yaml
 2. **Restart Policies**: Already configured with `unless-stopped`
 3. **Monitoring**: Use container monitoring tools
 4. **Backup**: Regular backup of the `app_data` volume

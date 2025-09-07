@@ -102,13 +102,13 @@ This guide provides detailed instructions for configuring environment variables 
 2. **Branch**: `prep-for-coolify`
 3. **Build Context**: Root directory
 4. **Dockerfile Path**: `./Dockerfile`
-5. **Docker Compose Path**: `./docker-compose.yml`
+5. **Docker Compose Path**: `./docker-compose.yaml`
 
 ### 3. Build Configuration
 
 1. **Build Command**: Not required (Docker handles build)
 2. **Install Command**: Not required
-3. **Start Command**: Defined in docker-compose.yml
+3. **Start Command**: Defined in docker-compose.yaml
 
 ### 4. Volume Configuration
 
@@ -140,7 +140,7 @@ Since this application doesn't serve web traffic:
 
 ### 6. Health Check Configuration
 
-Health checks are defined in docker-compose.yml:
+Health checks are defined in docker-compose.yaml:
 
 ```yaml
 healthcheck:
