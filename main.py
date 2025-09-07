@@ -14,8 +14,12 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Configure data directory for persistent storage
+DATA_DIR = os.getenv('DATA_DIR', '/app/data')
+os.makedirs(DATA_DIR, exist_ok=True)
+
 # Set up logging
-logging.basicConfig(filename='debug.log', level=logging.DEBUG,
+logging.basicConfig(filename=os.path.join(DATA_DIR, 'debug.log'), level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Spotify API credentials
@@ -29,11 +33,11 @@ WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 SHOW_ID = os.getenv('SHOW_ID')
 
 # File to store the last checked episodes
-LAST_EPISODES_FILE = 'last_episodes.json'
+LAST_EPISODES_FILE = os.path.join(DATA_DIR, 'last_episodes.json')
 
 # SMTP settings
 SMTP_SERVER = os.getenv('SMTP_SERVER')
-SMTP_PORT = int(os.getenv('SMTP_PORT'))
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))  # Default SMTP port
 SMTP_USERNAME = os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 EMAIL_RECIPIENT = os.getenv('EMAIL_RECIPIENT')
@@ -121,8 +125,9 @@ def trigger_webhook(new_episodes, test_limit=None):
 
 def rotate_log_file():
     logging.debug("Rotating log file")
-    if os.path.exists('debug.log'):
-        with open('debug.log', 'r') as f:
+    log_file_path = os.path.join(DATA_DIR, 'debug.log')
+    if os.path.exists(log_file_path):
+        with open(log_file_path, 'r') as f:
             lines = f.readlines()
         
         one_week_ago = datetime.now() - timedelta(days=7)
@@ -136,7 +141,7 @@ def rotate_log_file():
                 # If we can't parse the date, keep the line
                 new_lines.append(line)
         
-        with open('debug.log', 'w') as f:
+        with open(log_file_path, 'w') as f:
             f.writelines(new_lines)
         
         logging.debug(f"Removed {len(lines) - len(new_lines)} old log entries")

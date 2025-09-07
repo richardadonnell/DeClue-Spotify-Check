@@ -1,0 +1,28 @@
+services:
+  declue-spotify-check:
+    build: .
+    restart: unless-stopped
+    environment:
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - SHOW_ID=${SHOW_ID}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAIL_RECIPIENT=${EMAIL_RECIPIENT}
+    volumes:
+      - app_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/data') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Note: No port mappings needed - Coolify handles networking
+    # Note: Coolify will handle cron scheduling through its web interface
+
+volumes:
+  app_data:
+    driver: local
