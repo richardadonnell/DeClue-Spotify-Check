@@ -1,12 +1,12 @@
+import argparse
 import json
 import logging
 import os
-import argparse
-from datetime import datetime, timedelta
-from urllib.parse import urlparse
 import smtplib
-from email.mime.text import MIMEText
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
