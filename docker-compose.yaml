@@ -2,6 +2,7 @@ services:
   declue-spotify-check:
     build: .
     restart: unless-stopped
+    command: ["sleep", "infinity"]
     environment:
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
